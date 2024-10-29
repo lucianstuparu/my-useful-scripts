@@ -1,16 +1,6 @@
 import re
-import html
 import os
-
-def escape_single_quotes(text):
-    return text.replace("'", "\\'")
-
-def escape_double_quotes(text):
-    return text.replace('"', '\\"')
-
-def escape_html_for_srcdoc(text):
-    # Escape only quotes to avoid breaking the srcdoc attribute, but keep HTML tags intact
-    return text.replace("'", "&#39;").replace('"', "&quot;")
+import base64
 
 def update_margin_in_body(html_content):
     # Replace the margin style in the main div inside the body
@@ -70,7 +60,7 @@ def merge_html_files_in_directory(directory_path):
             margin: 20px 0;
         }}
         h2 {{
-            adding: 20px 0 0 0;
+            padding: 20px 0 0 0;
             text-align: center;
             color: #1a73d9;
             border-top: 4px solid #1a73d9;
@@ -80,9 +70,9 @@ def merge_html_files_in_directory(directory_path):
     </style>
     <script>
         function resizeIframe(iframe) {{
-            iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
+            iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 10) + 'px';
             setTimeout(function() {{
-                iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
+                iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 10) + 'px';
             }}, 500);
         }}
     </script>
@@ -97,13 +87,23 @@ def merge_html_files_in_directory(directory_path):
         with open(os.path.join(directory_path, html_file), 'r', encoding='utf-8') as file:
             html_content = file.read()
             updated_html_content = update_margin_in_body(html_content)
-            escaped_html_content = escape_html_for_srcdoc(updated_html_content)
+            base64_content = base64.b64encode(updated_html_content.encode('utf-8')).decode('utf-8')
             file_number = re.match(r'^(\d+)', html_file).group(1)
             file_name_without_number = re.sub(r'^\d+-', '', html_file).rsplit('.', 1)[0]
             merged_html_content += f"""
     <h2>{file_number}. {file_name_without_number}</h2>
     <div class='content-block' style="margin: 0;">
-        <iframe srcdoc="{escaped_html_content}" onload="resizeIframe(this)" style="width: 100%; border: 0;"></iframe>
+        <iframe onload="resizeIframe(this)" style="width: 100%; border: 0;"></iframe>
+        <script>
+            (function() {{
+                var iframe = document.currentScript.previousElementSibling;
+                var content = decodeURIComponent(escape(atob('{base64_content}')));
+                var doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(content);
+                doc.close();
+            }})();
+        </script>
     </div>
     """
 
