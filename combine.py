@@ -1,5 +1,6 @@
 import re
 import html
+import os
 
 def escape_single_quotes(text):
     return text.replace("'", "\\'")
@@ -15,78 +16,97 @@ def update_margin_in_body(html_content):
     # Replace the margin style in the main div inside the body
     return re.sub(r'(<div style=")margin: 20px 20px;', r'\1margin: 0;', html_content, flags=re.DOTALL)
 
-def merge_html_files(file1_path, file2_path, output_path):
-    with open(file1_path, 'r', encoding='utf-8') as file1:
-        html1 = file1.read()
+def merge_html_files_in_directory(directory_path):
+    print(f"Looking for HTML files in directory: {directory_path}")
 
-    with open(file2_path, 'r', encoding='utf-8') as file2:
-        html2 = file2.read()
+    # Get all HTML files starting with a number in consecutive order
+    html_files = sorted(
+        [f for f in os.listdir(directory_path) if re.match(r'^\d+.*\.html$', f)],
+        key=lambda x: int(re.match(r'^(\d+)', x).group(1))
+    )
 
-    # Update margin in the body div for each file
-    html1 = update_margin_in_body(html1)
-    html2 = update_margin_in_body(html2)
+    if not html_files:
+        print("No HTML files found that start with a number.")
+        return
 
-    # Escape HTML content to be safely used within srcdoc attribute
-    escaped_html1 = escape_html_for_srcdoc(html1)
-    escaped_html2 = escape_html_for_srcdoc(html2)
+    print(f"Found HTML files: {html_files}")
 
-    # Create the merged HTML
-    merged_html = f"""
-    <!DOCTYPE html>
-    <html lang='fr'>
-    <head>
-        <meta charset='UTF-8'>
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <title>Combined H5P Content</title>
-        <style>
-            /* Add some basic styles to separate content visually */
-            .content-block {{
-                margin: 0;
-                padding: 20px;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                display: block;
-                overflow: hidden;
-            }}
-            iframe {{
-                width: 100%;
-                border: none;
-                display: block;
-                overflow: hidden;
-                scrollbar-width: none;
-            }}
-            iframe::-webkit-scrollbar {{
-                display: none;
-            }}
-        </style>
-        <script>
-            function resizeIframe(iframe) {{
+    merged_html_content = """
+<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Combined H5P Content</title>
+    <style>
+        /* Add some basic styles to separate content visually */
+        .content-block {{
+            margin: 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            display: block;
+            overflow: hidden;
+        }}
+        iframe {{
+            width: 100%;
+            border: none;
+            display: block;
+            overflow: hidden;
+            scrollbar-width: none;
+            width: 100%;
+        }}
+        iframe::-webkit-scrollbar {{
+            display: none;
+        }}
+    </style>
+    <script>
+        function resizeIframe(iframe) {{
+            iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
+            setTimeout(function() {{
                 iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
-                setTimeout(function() {{
-                    iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
-                }}, 500);
-            }}
-        </script>
-    </head>
-    <body>
-        <h1>Combined H5P Content</h1>
+            }}, 500);
+        }}
+    </script>
+</head>
+<body>
 
-        <!-- First HTML File Content -->
-        <div class='content-block' style="margin: 0;">
-            <iframe srcdoc="{escaped_html1}" onload="resizeIframe(this)"></iframe>
-        </div>
+"""
 
-        <!-- Second HTML File Content -->
-        <div class='content-block' style="margin: 0;">
-            <iframe srcdoc="{escaped_html2}" onload="resizeIframe(this)"></iframe>
-        </div>
-    </body>
-    </html>
+    # Read each HTML file and add to the merged content
+    for html_file in html_files:
+        print(f"Processing file: {html_file}")
+        with open(os.path.join(directory_path, html_file), 'r', encoding='utf-8') as file:
+            html_content = file.read()
+            updated_html_content = update_margin_in_body(html_content)
+            escaped_html_content = escape_html_for_srcdoc(updated_html_content)
+            file_name_without_number = re.sub(r'^\d+-', '', html_file).rsplit('.', 1)[0]
+            merged_html_content += f"""
+    <h2>{file_name_without_number}</h2>
+    <div class='content-block' style="margin: 0;">
+        <iframe srcdoc="{escaped_html_content}" onload="resizeIframe(this)" style="width: 100%;"></iframe>
+    </div>
     """
 
+    # Close the HTML structure
+    merged_html_content += """
+</body>
+</html>
+"""
+
     # Write the merged HTML to the output file
+    output_path = os.path.join(directory_path, 'index.html')
+    print(f"Writing merged content to: {output_path}")
     with open(output_path, 'w', encoding='utf-8') as output_file:
-        output_file.write(merged_html)
+        output_file.write(merged_html_content)
+    print("Merging complete.")
 
 # Example usage
-merge_html_files('1-Tour de magie.html', "2-J'ai déjà appris.html", 'combined.html')
+# merge_html_files_in_directory('/path/to/your/directory')
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python merge_html_files.py <directory_path>")
+    else:
+        merge_html_files_in_directory(sys.argv[1])
