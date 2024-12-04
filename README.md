@@ -118,6 +118,12 @@ Let me know if additional details are needed!
   - `<INPUT_FOLDER_OR_FILE>`: Path to a directory containing `.pptx` files or a single `.pptx` file.
 
   **Output:** Each `.pptx` file is converted to an HTML file (`index.html`) and a corresponding ZIP file in the same directory.
+  ## Prerequisites for `convert-ppt-to-html.py`
+
+  **Ensure the following:**
+  - The script uses the iSpring SDK executable to convert `.pptx` files to HTML.
+  - The iSpring SDK executable is installed on your system.
+  - Provide the correct path to the executable when running the script.
 
 ---
 
