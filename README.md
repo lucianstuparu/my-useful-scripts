@@ -98,8 +98,6 @@ This repository contains scripts for various tasks, including API interaction, d
   pip install requests
   ```
 
-Let me know if additional details are needed!
-
 ---
 
 ## 5. Convert PowerPoint to HTML
@@ -172,5 +170,3 @@ Let me know if additional details are needed!
     ```bash
     pip install requests
     ```
-
-Let me know if further adjustments are needed!
